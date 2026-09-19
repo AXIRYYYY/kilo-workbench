@@ -1,0 +1,23 @@
+{
+  "port": 7788,
+  "host": "127.0.0.1",
+  "vscodeCommand": "code",
+  "monitor": {
+    "dbPath": "",
+    "probeIntervalMs": 1000,
+    "snapshotDays": 7,
+    "recentWindowSec": 1800,
+    "maxSessionsPerProject": 20,
+    "heartbeatSec": 30,
+    "errorCooldownSec": 30,
+    "pageCacheKb": -32000
+  },
+  "opencodeImport": {
+    "dbPath": "",
+    "pathBlacklist": []
+  },
+  "desktopLnkImport": {
+    "sourceDirs": [],
+    "groupRules": []
+  }
+}

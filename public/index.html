@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作台</title>
+<!-- 浏览器标签页图标（favicon）：深色圆角底 + 四方格图案（呼应组框 ▣ 意象，两个格子用强调蓝提亮） -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='1' width='30' height='30' rx='7' fill='%231e222b'/%3E%3Crect x='6' y='6' width='9' height='9' rx='2' fill='%239db8e8'/%3E%3Crect x='17' y='6' width='9' height='9' rx='2' fill='%233a4150'/%3E%3Crect x='6' y='17' width='9' height='9' rx='2' fill='%233a4150'/%3E%3Crect x='17' y='17' width='9' height='9' rx='2' fill='%239db8e8'/%3E%3C/svg%3E">
+<style>
+  /* ---------- 全局风格：深色卡片墙 ---------- */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ---------- 主题变量：默认深色；body.light 时整套切换为浅色 ---------- */
+  :root {
+    --bg: #14161c;          /* 页面底色 */
+    --card: #1e222b;        /* 卡片底色 */
+    --border: #2e3440;      /* 通用边框 */
+    --text: #dfe3ea;        /* 主文字色 */
+    --text-dim: #6f7787;    /* 次要文字色（路径等） */
+    --text-dim2: #7b8291;   /* 提示文字色 */
+    --dim-hover: #9aa3b2;   /* 次要文字悬停色 */
+    --input: #171a21;       /* 输入框底色 */
+    --input-text: #cfd4dd;  /* 输入框文字色 */
+    --accent: #9db8e8;      /* 链接蓝 / 强调色 */
+    --btn-bg: #2a2f3a;      /* 按钮底色 */
+    --btn-border: #3a4150;  /* 按钮边框 */
+    --btn-hover: #3a4150;   /* 按钮悬停底色 */
+    --ok: #5fbf7a;          /* 在线状态灯 */
+    --err: #e06c6c;         /* 离线状态灯 */
+    --toast-ok: #2f7d4f;    /* 成功提示底色 */
+    --toast-err: #a03b3b;   /* 失败提示底色 */
+    --bat-file: #8fb573;    /* bat 文件名颜色 */
+    --link-border: #44506a; /* 链接按钮边框 */
+    --focus: #4a5568;       /* 输入框聚焦边框 */
+    --shadow: rgba(0,0,0,.4); /* 卡片悬停阴影 */
+
+    /* ---------- 尺寸变量：网格视图的"舒适"尺寸（本次按 Dashy 水平收紧） ----------
+       横条视图（body.view-list）在下面另有压缩规则，不复用这里 */
+    --grid-min: 240px;   /* 网格视图卡片最小列宽（原 280px，收紧后同屏多放一列） */
+    --grid-gap: 10px;    /* 网格视图卡片间距（原 16px） */
+    --card-pad: 8px 10px;/* 网格视图卡片内边距（原 14px，改上下8左右10） */
+    --note-h: 46px;      /* 备忘录输入框高度（网格视图） */
+    --note-row-h: 30px;  /* 备忘录输入框高度（横条视图，压低成本 30px） */
+    --btn-pad: 2px 6px;  /* 按钮内边距（统一规格，字号仍 13px；240px 窄卡放 3 个长标签也不裁边） */
+  }
+  /* 浅色主题（点顶栏 🌙/☀️ 切换，选择存浏览器 localStorage） */
+  body.light {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #d8dce4;
+    --text: #2a2e37;
+    --text-dim: #6f7787;
+    --text-dim2: #7b8291;
+    --dim-hover: #4a5060;
+    --input: #ffffff;
+    --input-text: #2a2e37;
+    --accent: #3b6bc4;
+    --btn-bg: #e8eaef;
+    --btn-border: #c9ced8;
+    --btn-hover: #d8dce4;
+    --ok: #2f9e57;
+    --err: #d04545;
+    --toast-ok: #2f7d4f;
+    --toast-err: #a03b3b;
+    --bat-file: #4a7a2e;
+    --link-border: #b9c4dc;
+    --focus: #b6c2d8;
+    --shadow: rgba(0,0,0,.12);
+  }
+  /* ---------- 横条视图（点顶栏 ☰/▦ 切换，选择存浏览器 localStorage） ----------
+     卡片改横向一行：标题+路径 | 动作按钮 | 备忘录（单行）；列数由 JS 瀑布流固定单列满宽
+     （极简化后 直链/bat 区已撤出卡面，功能收进右键菜单与 ▶️bat 弹窗） */
+  body.view-list .card {
+    display: grid;
+    /* 卡面极简化后只剩：标题+路径 | 主力按钮 | 备忘录，两列布局 */
+    grid-template-columns: minmax(220px, 1fr) auto 260px;  /* 计划定值的两行三列 */
+    grid-template-rows: auto;
+    grid-template-areas:
+      "title actions note";
+    gap: 3px 10px;
+    padding: 3px 10px;           /* 行高尽量压低：padding=3px10px */
+  }
+  body.view-list .card:hover {
+    transform: none;             /* 横条很密，去掉上浮动画避免抖动重叠 */
+    box-shadow: none;
+  }
+  body.view-list .titleRow { grid-area: title; }
+  body.view-list .actions { grid-area: actions; flex-wrap: wrap; max-width: 320px; align-content: start; }
+  body.view-list .card textarea { grid-area: note; height: var(--note-row-h); margin: 0; align-self: start; }
+  body.view-list .secHead { margin: 0 0 4px; }   /* 组标题下距压低 8→4 */
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  header h1 { font-size: 22px; letter-spacing: 2px; }
+  header .sub { font-size: 12px; color: var(--text-dim2); margin-left: 12px; }
+
+  /* ---------- 按钮统一：全部 13px、一致高度（原 .mini 不再缩小字号） ---------- */
+  button {
+    background: var(--btn-bg); color: var(--text);
+    border: 1px solid var(--btn-border); border-radius: 6px;
+    padding: var(--btn-pad); font-size: 13px; line-height: 1.4; cursor: pointer;
+    transition: background .15s;
+  }
+  button:hover { background: var(--btn-hover); }
+  /* 迷你按钮：只改淡颜色，字号与普通按钮一致（计划要求） */
+  button.mini { color: var(--text-dim); }
+  button.mini:hover { color: var(--text); }
+
+  /* ---------- 顶栏分组标签条 ---------- */
+  #tabs {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
+    align-items: center;
+  }
+  #tabs .tab {
+    border-radius: 999px; padding: 4px 14px; font-size: 13px;
+  }
+  /* 激活中的标签：用强调色高亮 */
+  #tabs .tab.active {
+    background: var(--accent); color: var(--bg); border-color: var(--accent);
+  }
+  /* 空分组提示小字 */
+  .emptyHint { color: var(--text-dim2); font-size: 13px; padding: 20px 4px; }
+
+          /* ---------- 「全部」标签下的分组堆叠（网格视图：两遍式方块咬合装箱） ----------
+     网格视图：组块位置/大小由 JS 装箱后【绝对定位】（#grid 相对定位 + 总高手动收口）；
+     横条视图：仍用 flex 流式堆叠（组块先横排铺满一行再换行），见下方 body.view-list 规则 */
+  #grid.stacked {
+    position: relative;
+  }
+  body.view-list #grid.stacked {
+    display: block;               /* 横条=老老实实一条条排：组纯竖排，无并排挤行 */
+  }
+  body.view-list #grid.stacked .secBlock + .secBlock { margin-top: 8px; }  /* 组间距 12→8 */
+  .secBlock {
+    background: var(--bg);
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 12px 12px;
+    flex: 1 1 480px;
+    min-width: 0;
+    display: flex; flex-direction: column;
+  }
+
+  .secHead {
+    font-size: 13px; font-weight: bold; color: var(--text-dim);
+    margin: 0 0 8px; letter-spacing: 1px;
+  }
+  /* 组区拉伸时：卡内网格行也等高拉伸，组内不留大片下空；末卡跨列补满尾行 */
+  .secCards { display: grid; min-width: 0; gap: var(--grid-gap); flex: 1; grid-auto-rows: 1fr; }
+  .secCards > .card:last-child { height: 100%; }  .secCards { display: grid; min-width: 0; gap: var(--grid-gap); }
+
+    /* ---------- 卡片平铺视图（单组标签）：同款 grid + 尾卡补满 ---------- */
+  #grid:not(.stacked) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--grid-min), 1fr));
+    gap: var(--grid-gap);
+  }
+
+  /* ---------- 拖拽排序高亮 ---------- */
+  .card.dragging { opacity: .45; }
+  #tabs .tab.dragging { opacity: .45; }   /* 分组标签拖拽中 */
+  .card.dropTarget {
+    outline: 2px dashed var(--accent); outline-offset: 2px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: var(--card-pad);
+    display: flex; flex-direction: column; gap: 6px;   /* 卡内行距收紧（原 8px） */
+    transition: transform .15s, box-shadow .15s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px var(--shadow); }
+
+  .card .titleRow { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .card .name { font-size: 14px; font-weight: bold; cursor: pointer; word-break: break-all; }
+  .card .path {
+    font-size: 10.5px; color: var(--text-dim); word-break: break-all; cursor: pointer;
+  }
+  .card .path:hover { color: var(--dim-hover); }
+
+  /* 卡片上的主按钮排：只留 3 个主力按钮（其余功能收进右键菜单） */
+  .actions { display: flex; gap: 4px; }
+  /* 按钮文字不折行（窄卡里"打\n开"断字很难看）；空间实在不够时按钮稍微出格也无妨 */
+  .actions button, .btnKeepText { white-space: nowrap; max-width: none; }
+
+  /* 备忘录 */
+  .card textarea {
+    width: 100%; height: var(--note-h); resize: vertical;
+    background: var(--input); color: var(--input-text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px; font-size: 12px; font-family: inherit;
+  }
+  .card textarea:focus { outline: none; border-color: var(--focus); }
+
+  /* ---------- 右键菜单 / bat 跟手弹窗（全局唯一的浮层面板，二级子菜单同款） ----------
+     position:fixed + 视口钳制；菜单宽随内容，条目悬停高亮 */
+  .ctxMenu {
+    position: fixed; z-index: 200; display: none;
+    background: var(--card); border: 1px solid var(--btn-border);
+    border-radius: 8px; box-shadow: 0 8px 24px var(--shadow);
+    padding: 4px; min-width: 190px; max-height: 75vh; overflow-y: auto;
+  }
+  .ctxItem {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; font-size: 13px; line-height: 1.5;
+    border-radius: 6px; cursor: pointer; color: var(--text);
+    white-space: nowrap; user-select: none;
+  }
+  .ctxItem:hover { background: var(--btn-hover); }
+  .ctxItem.danger { color: var(--err); }                  /* 危险项=红字（删除/移除） */
+  .ctxItem .dim { color: var(--text-dim); font-size: 11px; }   /* 条目右侧灰字（文件名） */
+  .ctxItem .arrow { margin-left: auto; color: var(--text-dim); font-size: 11px; }  /* ▸ 有子菜单 */
+  .ctxSep { border-top: 1px solid var(--border); margin: 4px 6px; }
+
+  /* ---------- 顶栏下的小白提示条（可关闭，点过一次后记住不再显示） ---------- */
+  #hintBar {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-dim2); margin: -8px 0 12px;
+  }
+
+  .toast {
+    position: fixed; top: 16px; right: 16px; z-index: 99;
+    background: var(--toast-ok); color: #fff; border-radius: 8px;
+    padding: 10px 16px; font-size: 13px; display: none;
+    box-shadow: 0 4px 14px rgba(0,0,0,.5);
+  }
+  .toast.err { background: var(--toast-err); }
+
+  #addDlg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.55); z-index: 50;
+    align-items: center; justify-content: center;
+  }
+  #addDlg .box {
+    background: var(--card); border: 1px solid var(--btn-border); border-radius: 12px;
+    padding: 22px; width: 420px; display: flex; flex-direction: column; gap: 10px;
+  }
+  #addDlg input {
+    background: var(--input); color: var(--input-text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: 13px;
+  }
+</style>
+
+<!-- ============================================================
+     监控台样式（并入工作台：原 kilo-monitor 页面样式原样搬入）
+     命名空间策略：所有选择器一律限定在 #monView 之下，类名加 mon 前缀。
+     原因：工作台已经占用 .card / .badge / #grid / ul / li 等名字，
+     不加前缀会互相污染，把工作台的装箱布局弄坏。
+     颜色变量在 #monView 内重新定义（同名变量在子树内覆盖工作台的），
+     --bg / --card 两个名字两边都有，所以必须在 #monView 里覆盖。
+     ============================================================ -->
+<style>
+  /* ---------- 顶层视图切换（工作台 ↔ 监控台） ----------
+     设计要点：切换器固定钉在顶栏最左侧 —— 两个视图下位置完全一致，
+     不会因为"右边动作按钮增减"或"状态文字长短"而左右跳动。 */
+  #appSwitch {
+    display: flex; flex: 0 0 auto;
+    border: 1px solid var(--btn-border); border-radius: 8px; overflow: hidden;
+  }
+  #appSwitch button { border: none; border-radius: 0; background: transparent; padding: 4px 12px; }
+  #appSwitch button + button { border-left: 1px solid var(--btn-border); }
+  #appSwitch button.active { background: var(--accent); color: var(--bg); }
+  /* 未读数字放在定宽槽里：0 → (1) → (12) 都不会改变按钮宽度，切换器永不抖动 */
+  #monCount { display: inline-block; min-width: 26px; text-align: left; color: inherit; }
+  #appSwitch button.has-unread { color: var(--accent); }
+  #appSwitch button.active.has-unread { color: var(--bg); }
+  #monPermHint { display: none; margin-left: 4px; }
+  #monPermHint.show { display: inline; }
+
+  /* 顶栏中段：随视图切换内容（工作台在线状态 / 监控台摘要+连接态），位置固定 */
+  #ctxInfo { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
+  #monInfo { display: none; align-items: center; gap: 10px; }
+  body.mon-active #monInfo { display: flex; }
+  body.mon-active #status { display: none; }
+
+  /* 视图专属按钮：只在对应视图出现；「⏹ 关闭服务」不带类，两个视图都在（位置固定在最右） */
+  .monOnly { display: none; }
+  body.mon-active .monOnly { display: inline-block; }
+  body.mon-active .wbOnly { display: none; }
+
+  /* 监控视图显示时，只藏工作台的内容区（顶栏保持不动 → 切换按钮位置不变） */
+  body.mon-active #hintBar,
+  body.mon-active #tabs,
+  body.mon-active > #grid { display: none !important; }
+  body:not(.mon-active) #monView { display: none; }
+
+  /* ---------- 监控台：主题跟随工作台（深色默认 / 🌙☀️ 切换），整页像同一个应用 ----------
+     做法：把监控台的语义变量映射到工作台变量上；--card / --bg 直接用工作台的
+     （所以这里【不要】再定义 --card / --bg，否则就是自我覆盖）。 */
+  #monView {
+    --fg: var(--text);
+    --muted: var(--text-dim2);
+    --line: var(--border);
+    --active: var(--accent);
+    --review: #e8a013;
+    --idle: #9ca3af;
+    --unreadbg: rgba(232, 160, 19, .10);
+    color: var(--fg);
+    font: 14px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+
+  /* 顶栏中段的监控信息（位于顶栏里，所以用工作台的变量名） */
+  #monSummary { color: var(--text-dim2); font-size: 13px; }
+  #monConn { font-size: 12px; color: var(--text-dim2); }
+
+  /* 顶栏里的监控专属按钮（沿用工作台按钮风格，尺寸与其它按钮一致） */
+  #monTestBtn, #monNotifBtn { padding: 4px 10px; }
+  #monNotifBtn[disabled], #monTestBtn[disabled] { opacity: .5; cursor: default; }
+  #monErr {
+    display: none; margin: 0 0 14px; padding: 12px 16px;
+    border: 1px solid var(--err); border-radius: 10px; color: var(--err); white-space: pre-wrap;
+  }
+  #monGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px;
+  }
+  #monView .monCard {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; overflow: hidden;
+  }
+  #monView .monCard.unread { border-color: var(--review); background: var(--unreadbg); }
+  #monView .monCardHead {
+    display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+    cursor: pointer; user-select: none;
+  }
+  #monView .monCardHead:hover { background: rgba(127,127,127,.08); }
+  #monView .monPname { font-weight: 600; min-width: 0; overflow: hidden; white-space: nowrap; }
+  /* 已知坑：max-width 必须放在内层元素上，外层容器上的 max-width 无效 */
+  #monView .monPnameInner {
+    display: inline-block; max-width: 230px; overflow: hidden;
+    text-overflow: ellipsis; vertical-align: middle;
+  }
+  #monView .monAgo { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  #monView .monBadge {
+    min-width: 20px; text-align: center; background: var(--review); color: #fff;
+    border-radius: 10px; font-size: 11px; padding: 1px 6px; display: none;
+  }
+  #monView .monCard.unread .monBadge { display: inline-block; }
+  #monView .monOpenBtn {
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 6px; font-size: 11px; padding: 3px 8px; cursor: pointer;
+  }
+  #monView .monOpenBtn:hover { color: var(--fg); }
+  #monView .monList { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  #monView .monItem {
+    display: flex; align-items: center; gap: 8px; padding: 6px 12px;
+    border-bottom: 1px solid var(--line); font-size: 13px;
+  }
+  #monView .monItem:last-child { border-bottom: none; }
+  #monView .monDot { width: 8px; height: 8px; border-radius: 50%; background: var(--idle); flex: none; }
+  #monView .monDot.active { background: var(--active); animation: monPulse 1.6s infinite; }
+  #monView .monDot.review { background: var(--review); }
+  @keyframes monPulse {
+    0% { box-shadow: 0 0 0 0 rgba(47,129,247,.5); }
+    70% { box-shadow: 0 0 0 6px rgba(47,129,247,0); }
+    100% { box-shadow: 0 0 0 0 rgba(47,129,247,0); }
+  }
+  #monView .monTitle { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--fg); }
+  #monView .monTitleInner {
+    display: inline-block; max-width: 100%; overflow: hidden;
+    text-overflow: ellipsis; vertical-align: middle;
+  }
+  #monView .monMeta {
+    color: var(--muted); font-size: 11.5px; white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  #monEmpty { padding: 40px; text-align: center; color: var(--muted); display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <!-- 视图切换器：固定钉在顶栏【最左侧】。两个视图下位置完全一致 ——
+       它左边没有别的东西，右边内容再变也不会推它。 -->
+  <div id="appSwitch">
+    <button id="swWorkBtn" class="active" onclick="switchAppView('work')" title="工作台视图（卡片墙）">🗂️ 工作台</button>
+    <button id="monBtn" onclick="switchAppView('mon')" title="监控台视图（Kilo 会话动态；括号内为未读数）">📡 监控台<span id="monCount"></span><span id="monPermHint" title="浏览器通知权限还没开——切到监控台点一次「开启通知」">🔔</span></button>
+  </div>
+
+  <!-- 顶栏中段：内容随视图切换（工作台在线状态 / 监控台摘要+连接态），但位置固定 -->
+  <div id="ctxInfo">
+    <span class="sub" id="status">…</span>
+    <span id="monInfo">
+      <span id="monSummary">连接中…</span>
+      <span id="monConn"></span>
+    </span>
+  </div>
+
+  <!-- 右侧动作按钮：工作台专属 / 监控台专属 / 两个视图通用。
+       「⏹ 关闭服务」不带视图类且排在最右 —— 两个视图下都在同一个位置。 -->
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="wbOnly" onclick="openAddDlg()">➕ 添加卡片</button>
+    <button class="wbOnly" id="themeBtn" onclick="toggleTheme()" title="切换深色/浅色主题">🌙</button>
+    <button class="wbOnly" id="viewBtn" onclick="toggleView()" title="切换 横条/网格 视图（横条=一屏显示更多）">☰ 横条</button>
+    <button class="monOnly" id="monTestBtn" title="只验浏览器提醒链路：响铃 + 弹窗，不依赖对话状态">测试提醒</button>
+    <button class="monOnly" id="monNotifBtn">开启通知</button>
+    <button onclick="shutdownServer()" title="工作台与监控台是同一个进程，一起关闭">⏹ 关闭服务</button>
+  </div>
+</header>
+
+<!-- 小白提示条：卡面极简化后，右键菜单是主要操作入口（点 ✕ 后不再显示） -->
+<div id="hintBar">
+  💡 在卡片上点<b>右键</b>可用全部功能：bat / 网页直链 / 移动分组 / 编辑 / 删除
+  <button class="mini" id="hintClose" title="不再显示本提示">✕</button>
+</div>
+
+<!-- 分组标签条：由 JS 根据卡片分组自动生成 -->
+<div id="tabs"></div>
+
+<div id="grid"><!-- 卡片在这里渲染 --></div>
+
+<!-- ============================================================
+     监控台视图（并入工作台；显示/隐藏由 body.mon-active 控制）
+     结构照搬原监控台页面，仅把 id/class 改成 mon 前缀，
+     避免与工作台已有的 #grid / .card / .badge 等撞名
+     ============================================================ -->
+<div id="monView">
+  <!-- 顶栏（含视图切换器、测试提醒/开启通知、摘要与连接态）是常驻的，
+       这里只放监控内容区，不再重复一套标题和按钮 -->
+  <div id="monErr"></div>
+  <div id="monGrid"></div>
+  <div id="monEmpty">最近 7 天没有会话活动</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 添加卡片弹窗 -->
+<div id="addDlg">
+  <div class="box">
+    <strong>添加卡片</strong>
+    <input id="addPath" placeholder="项目文件夹完整路径，如 C:\Projects\my-project">
+    <div style="font-size:12px;color:var(--text-dim2)">卡片名称留空则自动取路径最后一段</div>
+    <input id="addName" placeholder="卡片名称（可选）">
+    <input id="addGroup" placeholder="所属分组（可选，留空=不分组）">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeAddDlg()">取消</button>
+      <button onclick="submitAdd()">确定添加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   工作台前端逻辑
+   数据模型（与后端 projects.json 完全一致）：
+   { cards: [{ id, name, path, note, order, group, bats:[{file,label,order}], links:[{file,label,order}] }] }
+   group 为可选分组名，空=不进任何组；后端整包透传保存。
+   任何修改后整体 POST /api/cards 保存，简单可靠。
+   ============================================================ */
+
+let cards = [];        // 内存中的全部卡片
+let activeGroup = '';  // 当前选中的标签：'' = 全部，其他 = 分组名
+let groupOrder = [];   // 分组显示顺序（顶栏拖拽标签排序后保存；projects.json 顶层字段）
+const $ = s => document.querySelector(s);
+
+/* ---------- 主题切换（深色默认，选择存浏览器 localStorage） ---------- */
+
+function applyTheme(light) {
+  document.body.classList.toggle('light', light);
+  $('#themeBtn').textContent = light ? '☀️' : '🌙';
+  try { localStorage.setItem('wb-theme', light ? 'light' : 'dark'); } catch (_) {}
+}
+function toggleTheme() {
+  applyTheme(!document.body.classList.contains('light'));
+}
+/* 页面加载时恢复上次选择（读不到/出错就用深色） */
+(function initTheme() {
+  let saved = '';
+  try { saved = localStorage.getItem('wb-theme') || ''; } catch (_) {}
+  applyTheme(saved === 'light');
+})();
+
+/* ---------- 视图切换（默认横条，与主题分开各自记忆 localStorage） ---------- */
+
+function applyView(listView) {
+  document.body.classList.toggle('view-list', listView);
+  /* 按钮文字跟随当前视图：横条时按钮显示 ☰ 横条，网格时显示 ▦ 网格 */
+  $('#viewBtn').textContent = listView ? '☰ 横条' : '▦ 网格';
+  try { localStorage.setItem('wb-view', listView ? 'list' : 'grid'); } catch (_) {}
+  /* 切视图后 DOM 结构要跟着重建（横条=组框竖排 / 网格=装箱或瀑布流）；
+     render 末尾自带 rAF 重排，排版不会丢。正输备注时切视图会失焦，内容不丢 */
+  render();
+}
+function toggleView() {
+  applyView(!document.body.classList.contains('view-list'));
+}
+/* 页面加载时恢复上次选择（读不到就按计划默认「横条」；首次访问会写一次，避免闪烁）
+   调试后门：URL 带 ?view=grid / ?view=list 可强制视图（不受 localStorage 干扰，方便排查） */
+(function initView() {
+  let saved = '';
+  try { saved = localStorage.getItem('wb-view') || ''; } catch (_) {}
+  let listView = saved !== 'grid';   // 只有明确存过 'grid' 才是网格，否则横条
+  try {
+    const q = new URLSearchParams(location.search).get('view');
+    if (q === 'grid') listView = false;
+    if (q === 'list') listView = true;
+  } catch (_) {}
+  applyView(listView);
+})();
+
+/* ---------- 顶层视图切换：工作台 ↔ 监控台 ----------
+   与上面的「横条/网格」是两层不同的东西：这里是整页在两个大视图之间切。
+   监控台模块（页面最下方的独立 <script>）通过 window.KiloMon 注册钩子；
+   本块只管切 class / 存偏好 / 回到工作台时重排布局，不碰监控逻辑。
+   偏好存 localStorage['wb-appview']；调试后门：URL ?view=monitor 强制进监控台 */
+let appView = 'work';
+
+/* 把"当前视图"同步到界面：body 类 + 切换器高亮（切换与初始化共用一份逻辑） */
+function syncAppViewUI() {
+  document.body.classList.toggle('mon-active', appView === 'mon');
+  const sw = $('#swWorkBtn'), sm = $('#monBtn');
+  if (sw) sw.classList.toggle('active', appView === 'work');
+  if (sm) sm.classList.toggle('active', appView === 'mon');
+}
+
+function switchAppView(v) {
+  appView = v === 'mon' ? 'mon' : 'work';
+  syncAppViewUI();
+  try { localStorage.setItem('wb-appview', appView); } catch (_) {}
+  if (appView === 'mon') {
+    /* 切进监控台：让它用"当前时间"重判一次状态（隐藏期间时间也在走） */
+    if (window.KiloMon) window.KiloMon.onShow();
+  } else {
+    /* 切回工作台：隐藏期间量不到宽度，装箱结果可能是坏的 → 回来必须重排一次 */
+    requestAnimationFrame(relayoutMasonry);
+  }
+}
+
+/* 监控台模块回调：更新顶栏「📡 监控台」上的未读数与权限提示。
+   数字写进定宽槽 #monCount（0 → (12) 都不改变按钮宽度）→ 切换器位置永不抖动；
+   needsPerm=true 时按钮里多一个 🔔（未授权通知时提醒点一次，两个视图都看得见） */
+function wbSetMonBadge(n, needsPerm) {
+  const cnt = $('#monCount');
+  if (cnt) cnt.textContent = n ? '(' + n + ')' : '';
+  const b = $('#monBtn');
+  if (b) b.classList.toggle('has-unread', !!n);
+  const hint = $('#monPermHint');
+  if (hint) hint.classList.toggle('show', !!needsPerm);
+}
+
+(function initAppView() {
+  let saved = '';
+  try { saved = localStorage.getItem('wb-appview') || ''; } catch (_) {}
+  let want = saved === 'mon' ? 'mon' : 'work';
+  try {
+    if (new URLSearchParams(location.search).get('view') === 'monitor') want = 'mon';
+  } catch (_) {}
+  appView = want;
+  syncAppViewUI();
+})();
+
+/* 点击遮罩关闭添加弹窗 */
+$('#addDlg').onclick = e => { if (e.target.id === 'addDlg') closeAddDlg(); };
+
+/* ---------- 小白提示条：点 ✕ 后记住，之后不再显示 ---------- */
+(function initHint() {
+  let seen = '';
+  try { seen = localStorage.getItem('wb-hint'); } catch (_) {}
+  if (seen) { $('#hintBar').style.display = 'none'; return; }
+  $('#hintClose').onclick = () => {
+    $('#hintBar').style.display = 'none';
+    try { localStorage.setItem('wb-hint', '1'); } catch (_) {}
+  };
+})();
+
+/* ---------- 小工具 ---------- */
+
+function toast(msg, isErr) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.display = 'none', 2500);
+}
+
+async function api(url, body) {
+  const opt = body !== undefined
+    ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    : {};
+  const r = await fetch(url, opt);
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || '请求失败');
+  return j;
+}
+
+/* 保存整份数据到后端（cards + groupOrder 一起整包透传，server.js 原样落盘） */
+async function save() {
+  try {
+    await api('/api/cards', { cards, groupOrder });
+  } catch (e) {
+    toast('保存失败: ' + e.message, true);
+  }
+}
+
+/* ---------- 渲染 ---------- */
+
+/* 组顺序自愈：新组按拼音排到最后补进 groupOrder；已删除的组从列表清掉。
+   这样旧数据（无 groupOrder 字段）也能无缝升级为手动排序 */
+function normalizeOrder() {
+  const groups = [...new Set(cards.map(c => (c.group || '').trim()).filter(Boolean))];
+  const known = groupOrder.filter(g => groups.includes(g));
+  const rest = groups.filter(g => !known.includes(g)).sort((a, b) => a.localeCompare(b, 'zh'));
+  groupOrder = known.concat(rest);
+}
+
+/* 根据卡片里出现过的分组生成标签条：「全部」+ 各分组（顺序= groupOrder，可拖拽） */
+function renderTabs() {
+  const tabs = $('#tabs');
+  normalizeOrder();
+  tabs.innerHTML = '';
+  const defs = [{ key: '', label: '全部' }]
+    .concat(groupOrder.map(g => ({ key: g, label: g })));
+  defs.forEach(d => {
+    const b = document.createElement('button');
+    b.className = 'tab' + (activeGroup === d.key ? ' active' : '');
+    b.textContent = d.label;
+    b.dataset.key = d.key;   // 拖拽排序后按这个收顺序；「全部」key=''，收集时天然排除
+    if (d.key) {
+      b.title = '点击=只看该分组；按住拖动=调整分组顺序（拖完自动保存）';
+      makeTabDraggable(b);   // 分组标签可拖拽（「全部」固定第一，不可拖）
+    } else {
+      b.title = '显示全部卡片（按分组堆叠）';
+    }
+    b.onclick = () => { activeGroup = d.key; render(); };
+    tabs.appendChild(b);
+  });
+}
+
+/* 顶栏分组标签拖拽排序：指针版（与卡片拖拽同一套思路）。
+   位移超过 5px 才算拖拽（单击仍是切换分组）；拖动中换位，松手把标签条
+   最终顺序写回 groupOrder 并保存，全部堆叠区立即按新序渲染 */
+function makeTabDraggable(btn) {
+  btn.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;                 // 只响应左键
+    e.preventDefault();                         // 防止拖动时选中文字
+    const tabsBox = $('#tabs');
+    const startX = e.clientX, startY = e.clientY;
+    let active = false;
+
+    const onMove = ev => {
+      if (!active) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
+        active = true;
+        btn.classList.add('dragging');
+      }
+      // 光标下的标签 = 目标，把被拖标签插到它前面（与卡片拖拽一致的换位手感）
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const t = under && under.closest ? under.closest('#tabs .tab') : null;
+      if (t && t !== btn && t.dataset.key) tabsBox.insertBefore(btn, t);
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      btn.classList.remove('dragging');
+      if (!active) return;                      // 没超过阈值 = 普通点击，切换分组
+      // 拖拽生效后吞掉随后那次 click（capture 阶段拦截），避免误切换分组
+      const kill = ce => { ce.stopPropagation(); ce.preventDefault(); };
+      document.addEventListener('click', kill, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', kill, true), 0);
+      // 收集最终视觉顺序（「全部」没有 data-key，过滤后天然漏掉且永远第一）
+      groupOrder = [...tabsBox.querySelectorAll('.tab')]
+        .map(b => b.dataset.key)
+        .filter(k => k);
+      save(); render();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+/* 当前标签下应显示的卡片：全部=所有；某分组=group 精确匹配 */
+function visibleCards() {
+  if (!activeGroup) return cards;
+  return cards.filter(c => (c.group || '').trim() === activeGroup);
+}
+
+function render() {
+  cards.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  renderTabs();
+  const grid = $('#grid');
+  grid.innerHTML = '';
+  const list = visibleCards();
+
+  // 当前分组没有卡片时给个灰色提示
+  if (!list.length) {
+    const hint = document.createElement('div');
+    hint.className = 'emptyHint';
+    hint.textContent = activeGroup ? '该分组暂无卡片' : '暂无卡片';
+    grid.appendChild(hint);
+    return;
+  }
+
+  /* ---------- 结构由视图决定：横条=组框竖排（全部/单组一致）；网格下 全部=组块装箱、单组=平铺瀑布流 ---------- */
+  if (activeGroup && !document.body.classList.contains('view-list')) {
+    // 网格模式下点了具体分组标签：保持原行为，所有卡片平铺在 #grid 里
+    grid.classList.remove('stacked');
+    clearStackedLayout();                      // 清掉堆叠态高度残留
+    list.forEach(c => grid.appendChild(cardEl(c)));
+    requestAnimationFrame(relayoutMasonry);    // 平铺态也走瀑布流（统一窄宽贴满）
+    return;
+  }
+
+  // 「全部」标签：按 group 分桶堆叠
+  grid.classList.add('stacked');
+  const buckets = new Map();   // 组名 -> 该组卡片数组（保持 order 顺序）
+  const others = [];           // 没有分组的卡片（归入最后的「其他」块）
+  list.forEach(c => {
+    const g = (c.group || '').trim();
+    if (g) {
+      if (!buckets.has(g)) buckets.set(g, []);
+      buckets.get(g).push(c);
+    } else {
+      others.push(c);
+    }
+  });
+  // 组显示顺序 = groupOrder（顶栏拖拽标签排好的序；「其他」块永远排最后）
+  // 横条下点了具体分组标签：只渲染这一个组的组框（结构上与「全部」完全一致）
+  normalizeOrder();
+  const groupNames = activeGroup ? [activeGroup] : groupOrder.slice();
+  if (others.length) groupNames.push('');  // '' 代表「其他」块
+
+  groupNames.forEach(g => {
+    // 每组 = 一个 .secBlock 块（组名小标题 + 该组自己的卡片网格），块之间自适应多列排布
+    const block = document.createElement('div');
+    block.className = 'secBlock';
+
+    const head = document.createElement('div');
+    head.className = 'secHead';
+    head.textContent = g ? '▣ ' + g : '▣ 其他';
+    block.appendChild(head);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'secCards';
+    wrap.dataset.group = g;   // 拖拽跨组时靠这个标记知道卡片落进了哪个组（''=其他块）
+    (g ? buckets.get(g) : others).forEach(c => wrap.appendChild(cardEl(c)));
+    block.appendChild(wrap);
+    grid.appendChild(block);
+  });
+
+  // 全部堆叠定身后，按组内卡片瀑布流贴边排布（缩放/切视图/备注变化由各自监听器重排）
+  requestAnimationFrame(relayoutMasonry);
+}
+
+/* 生成一张卡片的 DOM。用 innerHTML 模板 + 事件绑定，直观可靠 */
+function cardEl(c) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.id = c.id;  // 拖拽排序时用 id 找到被拖的卡片
+
+  /* 极简卡面（对齐 Dashy）：
+     只留 标题/路径 + 3 个主力按钮 [📁][🟦][▶️bat] + 备忘录；
+     ✏️/🗑️/扫描bat/bat列表/直链 全部收进右键菜单（cardEl 末尾绑定） */
+  el.innerHTML = `
+    <div class="titleRow">
+      <div>
+        <div class="name" data-act="open-folder" title="点击用资源管理器打开">${esc(c.name)}</div>
+        <div class="path" data-act="open-folder">${esc(c.path)}</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button data-act="open-folder">📁 打开</button>
+      <button data-act="open-vscode">🟦 VS Code</button>
+      ${(c.bats || []).length ? `<button data-act="bat-menu" title="有 ${c.bats.length} 个 bat，点开运行（也可右键卡片）">▶️ bat (${c.bats.length})</button>` : ''}
+      ${(c.links || []).length ? `<button data-act="link-menu" title="有 ${c.links.length} 个网页直链，点开选择（也可右键卡片）">🌐 直链 (${c.links.length})</button>` : ''}
+    </div>
+    <textarea placeholder="📝 进度 / 备忘录（自动保存）">${esc(c.note || '')}</textarea>
+  `;
+
+  // ---- 拖拽排序：指针版（借鉴 Homarr/GridStack 思路：鼠标事件 + 阈值 + 拖动中实时换位） ----
+  // 只允许从标题行发起；移动超过 5px 才算拖拽，单击仍是"打开文件夹"
+  // 拖拽规则：
+  //   「全部」标签（分组堆叠）下拖拽 = 在各组 secCards 容器内换位；
+  //     拖进另一组的容器 = 自动把该卡 group 改成目标组（跨组移动=换 group，计划要求）
+  //   某分组标签下拖拽 = 平铺卡片间换位，不改分组
+  const titleRow = el.querySelector('.titleRow');
+  titleRow.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;                              // 只响应左键
+    if (e.target.closest('button, input, textarea')) return; // 不挡按钮点击
+    e.preventDefault();                                      // 防止拖动时选中文字
+    const startX = e.clientX, startY = e.clientY;
+    let active = false;
+
+    // 卡片所在的直接容器（#grid 平铺 或 .secCards 分组容器）
+    const container = () => el.parentElement;
+
+    // 计算当前视觉顺序里 el 应该插到 target 前还是后
+    const reorder = target => {
+      const box = container();
+      if (box !== target.parentElement) {
+        // 目标在另一组的容器里：先把 el 挪进那组的容器（跨组移动=换 group，松手时落盘）
+        const g = target.parentElement.dataset.group ?? '';
+        if ((c.group || '') !== g) {
+          c.group = g;
+          el.dataset.groupChanged = '1';  // 给标题行加个提示，告诉用户分组已变
+        }
+      }
+      const kids = [...box.children].filter(k => k.classList && k.classList.contains('card'));
+      const from = kids.indexOf(el), to = kids.indexOf(target);
+      if (from < 0 || to < 0 || from === to) return;
+      // DOM 直接移动节点 = 拖动中实时换位（GridStack 式跟随体验）
+      // 目标在自己后面时，先移除自己会让 target 左移一位，直接插到 target 位置即可
+      box.removeChild(el);
+      box.insertBefore(el, target);
+      // DOM 顺序变了 → 随即按新顺序重排瀑布流（拖动中实时跟随，绝对定位平滑过渡）
+      requestAnimationFrame(relayoutMasonry);
+    };
+
+    const onMove = ev => {
+      if (!active) {
+        // 位移超过 5px 才认定为拖拽，否则当作普通点击放行
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
+        active = true;
+        el.classList.add('dragging');
+      }
+      // 用光标下的实际元素找目标卡片（间隙处找不到就不动）
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const card = under && under.closest ? under.closest('.card') : null;
+      if (card && card !== el) reorder(card);
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      el.classList.remove('dragging');
+      delete el.dataset.groupChanged;
+      if (!active) return;               // 没超过阈值 = 普通点击，交给原有 onclick
+      // 拖拽生效后吞掉随后那次 click（capture 阶段拦截），避免误触"打开文件夹"
+      const kill = ce => { ce.stopPropagation(); ce.preventDefault(); };
+      document.addEventListener('click', kill, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', kill, true), 0);
+
+      // 收集"当前应显示的卡片"按最终视觉顺序重排，全部重写 order 后一次性保存
+      // 兼容两种布局：#grid 平铺（分组标签视图）/ #grid.stacked 里的多个 .secCards
+      const stacked = $('#grid').classList.contains('stacked');
+      let ordered;
+      if (stacked) {
+        // 堆叠模式：按 DOM 里各组 secCards 的顺序收卡片
+        ordered = [...$('#grid').querySelectorAll('.secCards')]
+          .flatMap(box => [...box.children]
+            .filter(k => k.classList && k.classList.contains('card'))
+            .map(k => k.dataset.id));
+        // 跨组拖拽：卡片最终待在哪个 secCards 里，group 就改成那个组
+        document.querySelectorAll('.secCards').forEach(box => {
+          const g = box.dataset.group ?? '';
+          [...box.children].forEach(k => {
+            if (!k.classList.contains('card')) return;
+            const cc = cards.find(x => x.id === k.dataset.id);
+            if (cc && (cc.group || '') !== g) cc.group = g;
+          });
+        });
+      } else {
+        // 平铺模式：#grid 直接子元素就是卡片
+        ordered = [...$('#grid').children]
+          .filter(k => k.classList && k.classList.contains('card'))
+          .map(k => k.dataset.id);
+      }
+      const vis = visibleCards();
+      const byId = new Map(vis.map(cc => [cc.id, cc]));
+      const orderedCards = ordered.map(id => byId.get(id)).filter(Boolean);
+      // 未在当前视图的卡片保持原相对顺序排在后面
+      const rest = vis.filter(cc => !orderedCards.includes(cc));
+      const final = orderedCards.concat(rest);
+      cards = final.concat(cards.filter(cc => !final.includes(cc)));
+      cards.forEach((cc, i) => cc.order = i + 1);
+      save(); render();
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // ---- 事件绑定 ----
+
+  // 备忘录：编辑后自动保存；高度变化 → 轻防抖重排瀑布流
+  el.querySelector('textarea').onchange = e => { c.note = e.target.value; save(); toast('已保存'); scheduleRelayout(); };
+
+  // 主按钮：只剩 3 个，其余功能全在右键菜单里（对齐 Dashy：卡面=快捷，右键=全部）
+  el.querySelectorAll('[data-act]').forEach(node => {
+    const act = node.dataset.act;
+    if (act === 'open-folder') node.onclick = () => actOpenFolder(c);
+    if (act === 'open-vscode') node.onclick = () => actOpenVscode(c);
+    if (act === 'bat-menu') {
+      // ▶️bat 弹窗；stopPropagation 防止这次点击冒泡到 document 把刚弹出的菜单又关掉
+      node.onclick = e => { e.stopPropagation(); openBatPopup(c, node); };
+    }
+    if (act === 'link-menu') {
+      // 🌐直链弹窗；stopPropagation 防止这次点击冒泡到 document 把刚弹出的菜单又关掉
+      node.onclick = e => { e.stopPropagation(); openLinkPopup(c, node); };
+    }
+  });
+
+  // ---- 右键菜单（对齐 Dashy）：整卡任意位置右键=贴鼠标弹菜单 ----
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();                     // 拦掉浏览器原生菜单（同 ItemMixin.preventNativeContextMenu）
+    openCardMenu(c, e.clientX, e.clientY);  // 菜单出现位置 = 鼠标坐标
+  });
+
+  return el;
+}
+
+/** HTML 转义，防注入/防显示错乱 */
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+/* ============================================================
+   右键菜单 / bat 跟手弹窗（全局唯一的浮层系统，设计对齐 Dashy
+   的 ItemContextMenu.vue + ItemMixin.openContextMenu）：
+   - 菜单贴鼠标/按钮出现，带视口边界钳制（比 Dashy 更稳，窄屏不入边）
+   - 左键条目执行动作；子菜单悬停/点击展开；条目可响应右键二级菜单
+   - 关闭：点击面板外 / Esc / 滚动 / 窗口失焦（同 Dashy「点任何地方关」）
+   ============================================================ */
+
+let menuStack = [];          // 打开中的面板栈：menuStack[0]=主菜单，其后为各级子菜单
+let menuJustOpened = false;  // 防止「弹出菜单的那次点击」继续冒泡到 document 把菜单又立刻关掉
+
+/** 收起全部菜单（面板 DOM 一并移除） */
+function closeMenus() {
+  menuStack.forEach(p => p.remove());
+  menuStack = [];
+}
+
+/* 生成一个浮层面板并定位，返回面板元素（入栈由调用方负责）。
+   items 里的每一条：
+     { sep:true }                  → 分隔线
+     { label, dim, danger, hint,   → 外观：灰字补充 / 红色危险项 / 无动作提示行
+       title,                      → 悬停提示
+       onclick,                    → 左键点击执行（无子菜单时）
+       sub:[...],                  → 子菜单（悬停/点击展开二级浮层）
+       oncontextmenu(mx,my) }      → 在这条上右键执行（如 bat 条目的管理菜单） */
+function makePanel(items, x, y, flipX) {
+  const p = document.createElement('div');
+  p.className = 'ctxMenu';
+  // 面板空白处右键：只拦浏览器原生菜单，无其他动作
+  p.addEventListener('contextmenu', e => e.preventDefault());
+
+  items.forEach(it => {
+    if (it.sep) {
+      const s = document.createElement('div');
+      s.className = 'ctxSep';
+      p.appendChild(s);
+      return;
+    }
+    const d = document.createElement('div');
+    d.className = 'ctxItem'
+      + (it.danger ? ' danger' : '')
+      + (it.hint ? ' hint' : '');
+    d.innerHTML = esc(it.label)
+      + (it.dim ? ` <span class="dim">${esc(it.dim)}</span>` : '')
+      + (it.sub ? ' <span class="arrow">▸</span>' : '');
+    if (it.title) d.title = it.title;
+    if (it.sub) {
+      // 悬停或点击都展开子菜单（小白双保险）
+      d.addEventListener('mouseenter', () => openSub(p, d, it.sub));
+      d.addEventListener('click', e => { e.stopPropagation(); openSub(p, d, it.sub); });
+    } else if (it.onclick) {
+      d.addEventListener('click', e => { e.stopPropagation(); closeMenus(); it.onclick(); });
+    }
+    if (it.oncontextmenu) {
+      d.addEventListener('contextmenu', e => {
+        e.preventDefault(); e.stopPropagation();
+        it.oncontextmenu(e.clientX, e.clientY);
+      });
+    }
+    p.appendChild(d);
+  });
+
+  document.body.appendChild(p);
+  /* 先显示（隐藏状态量不到尺寸，getBoundingClientRect 会返回 0），
+     再测量真实宽高、做视口钳制定位：flipX=true 时 x 是面板「右缘」的位置
+     （▶️ 弹窗贴按钮右对齐）；右缘放不下自动左翻，四边留 6px 安全边距 */
+  p.style.display = 'block';
+  const r = p.getBoundingClientRect();
+  let left = flipX ? x - r.width : x;
+  let top = y;
+  if (!flipX && left + r.width > window.innerWidth - 6) left = x - r.width;  // 左翻
+  left = Math.max(6, Math.min(left, window.innerWidth - r.width - 6));
+  top = Math.max(6, Math.min(top, window.innerHeight - r.height - 6));   // 底部钳制：菜单整体抬高
+  p.style.left = left + 'px';
+  p.style.top = top + 'px';
+  return p;
+}
+
+/* 关掉旧菜单后在 (x,y) 弹出新主菜单 */
+function openMenuAt(items, x, y, flipX) {
+  closeMenus();
+  const p = makePanel(items, x, y, flipX);
+  menuStack = [p];
+  // 本次事件还会冒泡，打标记让全局关闭逻辑这次忍住，否则菜单闪现即关
+  menuJustOpened = true;
+  setTimeout(() => menuJustOpened = false, 0);
+  return p;
+}
+
+/* 在父面板某一项右侧展开子菜单（同层只保留一个，换项即换） */
+function openSub(parent, itemEl, subItems) {
+  while (menuStack.length && menuStack[menuStack.length - 1] !== parent) {
+    menuStack.pop().remove();          // 先收起比父面板更深的旧子菜单
+  }
+  if (parent._sub) {                   // 再收起同级旧子菜单
+    parent._sub.remove();
+    menuStack = menuStack.filter(m => m !== parent._sub);
+  }
+  const r = itemEl.getBoundingClientRect();
+  const sub = makePanel(subItems, r.right + 2, r.top - 4);  // 贴项右侧，超右缘自动左翻
+  parent._sub = sub;
+  menuStack.push(sub);
+  /* 右缘卡片防遮盖：若子菜单左翻后与父面板横向重叠，改落到父面板左缘再往左 2px
+     （极窄屏放不下时退回原位，宁可少量重叠也不跑出屏幕） */
+  const pr = parent.getBoundingClientRect();
+  const sr = sub.getBoundingClientRect();
+  const overlaps = sr.left < pr.right - 2 && sr.left + sr.width > pr.left + 2;
+  if (overlaps && pr.left - sr.width - 2 >= 6) {
+    sub.style.left = Math.round(pr.left - sr.width - 2) + 'px';
+  }
+}
+
+/* 全局关闭逻辑：点面板外 / Esc / 滚动 / 缩放窗口 都收起 */
+document.addEventListener('click', e => {
+  if (menuJustOpened) return;
+  // 点在菜单内部（无动作项等）不关闭；点页面其他任意处关闭（同 Dashy）
+  if (!(e.target.closest && e.target.closest('.ctxMenu'))) closeMenus();
+});
+/* 右键：菜单内部 → 拦原生菜单；面板外 → 先收起旧菜单
+   （卡片 handler 随后弹出它自己的菜单；空白处则仍弹浏览器原生菜单） */
+document.addEventListener('contextmenu', e => {
+  if (e.target.closest && e.target.closest('.ctxMenu')) { e.preventDefault(); return; }
+  closeMenus();
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
+window.addEventListener('blur', closeMenus);
+window.addEventListener('resize', closeMenus);
+document.addEventListener('scroll', closeMenus, true);
+
+/* ============================================================
+   菜单内容组装（数据 → makePanel 的 items 格式）
+   ============================================================ */
+
+/* ---- 卡片右键主菜单（顺序按计划） ---- */
+function openCardMenu(c, x, y) {
+  openMenuAt([
+    { label: '📁 打开文件夹', onclick: () => actOpenFolder(c) },
+    { label: '🟦 VS Code 打开', onclick: () => actOpenVscode(c) },
+    { sep: true },
+    { label: '▶️ bat', sub: batMenuItems(c), title: '左键展开；条目左键运行、右键管理' },
+    { label: '🌐 网页直链', sub: linkMenuItems(c), title: '点条目直接在浏览器打开' },
+    { label: '🏷️ 移动到分组', sub: groupMenuItems(c), title: '点选分组即换组，立即生效' },
+    { sep: true },
+    { label: '✏️ 编辑卡片', onclick: () => editCard(c) },
+    { label: '🗑 删除卡片', danger: true, onclick: () => delCard(c) },
+  ], x, y);
+}
+
+/* ---- bat 子菜单：左键=运行；条目右键=管理（改备注/排序/移除） ---- */
+function batMenuItems(c) {
+  const bats = (c.bats || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const items = [{
+    label: '🔄 重新扫描 bat',
+    title: '扫描项目文件夹，重建 bat 列表（已有备注会保留）',
+    onclick: () => rescanBats(c),
+  }];
+  if (!bats.length) {
+    items.push({ label: '（未发现 bat，可先重新扫描）', hint: true });
+    return items;
+  }
+  bats.forEach(b => {
+    items.push({
+      label: '▶ ' + (b.label || b.file),
+      dim: b.label ? b.file : '',           // 有备注时灰字显示真实文件名
+      title: b.file + '\n左键=运行；右键=改备注 / 排序 / 移除',
+      onclick: () => runBat(c, b.file),
+      oncontextmenu: (mx, my) => openMenuAt(batManageItems(c, b), mx, my),
+    });
+  });
+  return items;
+}
+
+/* ---- bat 条目右键 → 管理小菜单 ---- */
+function batManageItems(c, b) {
+  return [
+    { label: '✏️ 改备注', onclick: async () => {
+        const v = prompt('bat 备注文字（留空=直接显示文件名）：', b.label || '');
+        if (v === null) return;
+        b.label = v.trim();
+        await save(); render();
+      } },
+    { label: '↑ 上移', onclick: () => moveBat(c, b, -1) },
+    { label: '↓ 下移', onclick: () => moveBat(c, b, 1) },
+    { sep: true },
+    { label: '✕ 移除', danger: true, onclick: async () => {
+        if (!confirm('从卡片里移除 ' + b.file + ' ？')) return;
+        c.bats = (c.bats || []).filter(x => x.file !== b.file);
+        await save(); render();
+      } },
+  ];
+}
+
+/* ---- 网页直链子菜单：左键=打开；条目右键=移除；「添加直链」 ---- */
+function linkMenuItems(c) {
+  const items = [{
+    label: '➕ 添加直链',
+    title: '输入相对项目文件夹的路径，如 index.html 或 docs\\demo\\console.html',
+    onclick: () => addLink(c),
+  }];
+  (c.links || []).forEach(link => {
+    items.push({
+      label: '🌐 ' + (link.label || link.file),
+      dim: link.label ? link.file : '',
+      title: link.file + '\n左键=浏览器打开；右键=移除',
+      onclick: () => openLocalFileApi(c, link.file),
+      oncontextmenu: (mx, my) => openMenuAt([{
+        label: '✕ 移除「' + (link.label || link.file) + '」',
+        danger: true,
+        onclick: async () => {
+          c.links = (c.links || []).filter(x => x.file !== link.file);
+          await save(); render();
+        },
+      }], mx, my),
+    });
+  });
+  return items;
+}
+
+/* 添加直链：两问（路径、备注），防重复 */
+async function addLink(c) {
+  const file = prompt('相对项目文件夹的 html 路径：', 'index.html');
+  if (!file) return;
+  c.links = (c.links || []);
+  if (c.links.some(x => x.file.toLowerCase() === file.toLowerCase())) {
+    toast('已存在该链接', true); return;
+  }
+  const label = prompt('按钮文字（回车用文件名当备注）：', '') || file.split(/[\\/]/).pop();
+  c.links.push({ file, label, order: c.links.length + 1 });
+  await save(); render();
+}
+
+/* ---- 移动到分组子菜单：点选即换组 + 其他 + 新建分组 ---- */
+function groupMenuItems(c) {
+  const cur = (c.group || '').trim();
+  const groups = [...new Set(cards.map(x => (x.group || '').trim()).filter(Boolean))];
+  const items = [];
+  groups.forEach(g => {
+    if (g === cur) {
+      items.push({ label: '▣ ' + g, dim: '当前', hint: true });
+    } else {
+      items.push({ label: '▣ ' + g, onclick: async () => { c.group = g; await save(); render(); } });
+    }
+  });
+  if (cur) items.push({ label: '▣ 其他（不分组）', onclick: async () => { c.group = ''; await save(); render(); } });
+  items.push({ label: '➕ 新建分组并移入', onclick: async () => {
+      const g = prompt('新分组名称（回车确定）：', '');
+      if (g === null || !g.trim()) return;
+      c.group = g.trim();
+      await save(); render();
+      toast('已移入分组「' + c.group + '」');
+    } });
+  return items;
+}
+
+/* ---- ▶️ bat 跟手弹窗：贴按钮右下角弹出（非居中/非模态，同右键菜单面板样式） ---- */
+function openBatPopup(c, btn) {
+  const r = btn.getBoundingClientRect();
+  openMenuAt(batMenuItems(c), r.right, r.bottom + 4, true);  // flipX=右缘对齐按钮
+}
+
+/* ---- 🌐 直链跟手弹窗：与 ▶️ bat 弹窗同款（贴按钮右下角弹出） ---- */
+function openLinkPopup(c, btn) {
+  const r = btn.getBoundingClientRect();
+  openMenuAt(linkMenuItems(c), r.right, r.bottom + 4, true);  // flipX=右缘对齐按钮
+}
+
+/* ---------- 各类动作 ---------- */
+
+async function actOpenFolder(c) { try { await api('/api/open-folder', { path: c.path }); } catch (e) { toast(e.message, true); } }
+async function actOpenVscode(c) { try { await api('/api/open-vscode', { path: c.path }); toast('VS Code 已打开'); } catch (e) { toast(e.message, true); } }
+async function runBat(c, file)  { try { await api('/api/run-bat', { dir: c.path, file }); toast('已运行 ' + file); } catch (e) { toast(e.message, true); } }
+async function openLocalFileApi(c, file) { try { await api('/api/open-file', { dir: c.path, file }); } catch (e) { toast(e.message, true); } }
+
+/** bat 上移(-1)/下移(+1)：交换 order 后保存重渲染 */
+async function moveBat(c, bat, delta) {
+  const bats = (c.bats || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const i = bats.findIndex(x => x.file === bat.file);
+  const j = i + delta;
+  if (j < 0 || j >= bats.length) return;
+  [bats[i].order, bats[j].order] = [bats[j].order ?? 0, bats[i].order ?? 0];
+  await save(); render();
+}
+
+/** 重新扫描项目目录下的 bat：新发现的选择性加入，已有的保留 label（原卡面按钮已并入右键菜单） */
+async function rescanBats(c) {
+  try {
+    const j = await api('/api/scan-bats', { path: c.path });
+    const olds = new Map((c.bats || []).map(b => [b.file, b]));
+    c.bats = j.bats.map((f, i) => {
+      const old = olds.get(f);
+      return { file: f, label: old ? old.label : '', order: i + 1 };
+    });
+    await save(); render();
+    toast(`扫描到 ${j.bats.length} 个 bat`);
+  } catch (e) { toast(e.message, true); }
+}
+
+/** 编辑卡片：只问路径和名称两问；换分组走右键菜单「🏷️ 移动到分组」（计划要求） */
+function editCard(c) {
+  const p = prompt('项目文件夹路径：', c.path);
+  if (p === null) return;
+  const n = prompt('卡片名称：', c.name);
+  if (n === null) return;
+  c.path = p.trim().replace(/[\\]+$/, '');
+  c.name = n.trim() || c.path.split(/[\\/]/).pop();
+  save().then(render);
+}
+
+/** 删除卡片 */
+async function delCard(c) {
+  if (!confirm('删除卡片「' + c.name + '」？\n（只删卡片，不会动文件夹里的任何文件）')) return;
+  cards = cards.filter(x => x.id !== c.id);
+  await save(); render(); toast('已删除');
+}
+
+/* ---------- 添加卡片 ---------- */
+
+function openAddDlg() { $('#addDlg').style.display = 'flex'; $('#addPath').focus(); }
+function closeAddDlg() { $('#addDlg').style.display = 'none'; }
+
+async function submitAdd() {
+  const p = $('#addPath').value.trim().replace(/[\\]+$/, '');
+  if (!p) { toast('请填写路径', true); return; }
+  if (cards.some(c => c.path.toLowerCase() === p.toLowerCase())) {
+    toast('这个路径已经有卡片了', true); return;
+  }
+  const name = $('#addName').value.trim() || p.split(/[\\/]/).pop();
+  const group = $('#addGroup').value.trim();  // 可选分组，留空=不分组
+  // 先在服务端探测 bat（顺便校验路径存在），失败则提示
+  let bats = [];
+  try {
+    const j = await api('/api/scan-bats', { path: p });
+    bats = j.bats.map((f, i) => ({ file: f, label: '', order: i + 1 }));
+  } catch (e) { toast(e.message, true); return; }
+
+  const maxOrder = cards.reduce((m, c) => Math.max(m, c.order || 0), 0);
+  cards.push({
+    id: 'c' + Date.now(), name, path: p, note: '', order: maxOrder + 1, group, bats,
+  });
+  $('#addPath').value = ''; $('#addName').value = ''; $('#addGroup').value = '';
+  closeAddDlg();
+  await save(); render();
+  toast(bats.length ? `已添加，自动发现 ${bats.length} 个 bat` : '已添加');
+}
+
+    /* ========== 卡片排布统一算法（两遍式「方块咬合」装箱） ==========
+     网格视图「全部」标签：把整页看作 nG 列虚拟棋盘——
+     第一遍纯计算：每组按卡片数选形状（方正优先），在占用网格里找最靠上的空位放下；
+     第二遍真实 DOM：按形状设宽 + 组内列数/尾卡补满 → 量自然高 → 同行组框等高拉伸
+     → 绝对定位落位；#grid 高度手动收口（绝对定位的块不撑容器）。
+     横条视图：不装箱（CSS flex 流式堆叠，组内单列）。
+     触发点：render 两分支、resize 防抖、视图切换、备注变化。 */
+
+  const MASONRY_CARD_W = 240;   /* 网格视图卡片统一窄宽（px） */
+  const MASONRY_GAP    = 12;    /* 组块之间/行之间的间距（px） */
+  const FRAME_EXTRA    = 26;    /* 组框横向额外开销（左右 padding 24 + 边框 2，border-box 计入） */
+
+  /* 尾卡补满：容器内卡片排 k 列；尾行剩 r 个空位时末卡跨列铺满（幂等） */
+  function applyTailSpan(container, k) {
+    const els = [...container.children].filter(el => el.classList && el.classList.contains('card'));
+    els.forEach(el => { el.style.gridColumn = ''; });
+    const n = els.length;
+    if (!n || k <= 1) return;
+    const r = n % k;
+    if (r !== 0) els[n - 1].style.gridColumn = 'span ' + (k - r + 1);
+  }
+
+  /* 组内排布：按容器实际宽度算列数（auto 到 240px 最小宽），末卡补满 */
+  function layoutGroupGrid(container) {
+    const W = container.clientWidth;
+    if (!W) return;
+    let k = Math.max(1, Math.floor((W + MASONRY_GAP) / (MASONRY_CARD_W + MASONRY_GAP)));
+    const nm = container.dataset.group || '';
+    if (nm && ONE_ROW_GROUPS.has(nm)) {   /* 一行组：块宽必须吃满 n 列 */
+      const n = container.querySelectorAll('.card').length;
+      if (n > 0 && W + MASONRY_GAP >= n * (MASONRY_CARD_W + MASONRY_GAP)) k = Math.max(k, n);
+    }
+    container.style.gridTemplateColumns = 'repeat(' + k + ', 1fr)';
+    applyTailSpan(container, k);
+  }
+
+  /* ---- 第一遍② + 第二遍：网格视图「全部」标签的两遍式装箱 ---- */
+  function packStackedGroups(grid) {
+    const blocks = [...grid.querySelectorAll('.secBlock')];
+    if (!blocks.length) { grid.style.height = ''; return; }
+
+    /* ===== 第一遍：纯计算（不碰样式）=====
+       用户拍板方案（2026-09-17）：
+       - 不搞实时启发；每次【数据变化】（卡片/组增删等令卡数序列变化）时，
+         离线把列数 1..6 每一档的「最佳摆法」都算一遍，结果存内存 +
+         localStorage（'wb-pack-v1'）；渲染/缩放/切标签只查表。某次实际
+         列数 >6（正常屏幕到不了）时才补算一份，并同样写回本地。
+       - 「最佳」的定义（大白话）：组顺序固定（顶栏标签顺序，「其他」永远最后）；
+         页面是一行行货架，每行只有两种摆法：
+           A 搭配挤（左右挤压）——相邻几个小组合计宽正好 = nG，一行塞满无空位；
+           B 整行平铺——一个组独占整行：n>nG 时组内 ceil(n/nG) 行、内部列数=nG、
+             末卡 span 补满；n<=nG 时组内 k=n 张卡横向摊开占满整行
+             （挤压不了就摊平，行尾不空着）。
+       - DP 求总行数最少的分段；行数并列时取选更大段的政策（挤压优先）。
+       （分组名改动不影响摆法，无需重算；组顺序变化时卡数序列也会变 → 自动重算） */
+    const Wg = grid.clientWidth;
+    const nG = Math.max(1, Math.floor((Wg - FRAME_EXTRA + MASONRY_GAP) / (MASONRY_CARD_W + MASONRY_GAP)));
+    /* 组框外壳（左右 padding 24 + 边框 2 = 26px）均摊到每个虚拟列：
+       列节距 P = (页宽 + 间距) / nG，块外宽 = w*P - 间距。
+       这样相邻组框之间正好留出 12px 空隙（不再叠边），
+       整行铺满时右缘恰好贴齐页宽（不出横向滚动条） */
+    const P = (Wg + MASONRY_GAP) / nG;
+
+    const counts = blocks.map(b => b.querySelectorAll('.secCards > .card').length);
+    const key = counts.join(',');   /* 数据变化指纹：卡数序列变了才重算 */
+
+    /* 分段 DP（大白话）：把组按固定顺序切成一段一段。
+       每段要么「相邻几个小组合计正好填一行」（1 行），要么「一个组独占」
+       （占 ceil(n/nG) 行）。dp[i] = 前 i 组最少行数。
+       其余（行中间 sum<nG）为漏洞布局，全部剪掉；页尾末段允许不全 */
+    function solve(cnts, nn) {
+      const nAll = cnts.length;
+      const dp = new Array(nAll + 1).fill(Infinity);
+      const from = new Array(nAll + 1).fill(-1);
+      dp[0] = 0;
+      for (let i = 1; i <= nAll; i++) {
+        for (let j = 0; j < i; j++) {
+          let r;
+          if (i - j === 1) {
+            r = Math.ceil(cnts[j] / nn);            /* 单组独站：内部摊开/深铺 */
+          } else {
+            let sum = 0;
+            for (let t = j; t < i; t++) sum += cnts[t];
+            if (sum !== nn) {
+              if (i !== nAll || sum > nn) continue; /* 页尾段允许 sum<nG，其余必须正好填满 */
+            }
+            r = 1;
+          }
+          const cost = dp[j] + r;
+          /* 并列更优：更小段起点 = 更长的挤压段，取挤压意向更强的 */
+          if (cost < dp[i] || (cost === dp[i] && j < from[i])) { dp[i] = cost; from[i] = j; }
+        }
+      }
+      /* 从 dp 末态回拆段 → 页面坐标系里的 rects */
+      const rects2 = new Array(nAll).fill(null);
+      const segs = [];
+      let t2 = nAll;
+      while (t2 > 0) { segs.push([from[t2], t2]); t2 = from[t2]; }
+      segs.reverse();
+      let y = 0;
+      for (const seg of segs) {
+        const j = seg[0], i = seg[1];
+        if (i - j === 1) {
+          const n2 = cnts[j];
+          rects2[j] = { x: 0, y: y, w: nn, r: Math.ceil(n2 / nn), k: Math.min(n2, nn) };
+          y += Math.ceil(n2 / nn);
+        } else {
+          let x = 0;
+          for (let t3 = j; t3 < i; t3++) {
+            rects2[t3] = { x: x, y: y, w: cnts[t3], r: 1, k: cnts[t3] };
+            x += cnts[t3];
+          }
+          y += 1;
+        }
+      }
+      return { rects: rects2, rowsTotal: y };
+    }
+
+    /* 双层缓存：内存 PACK_DB + localStorage（'wb-pack-v1'）。
+       key 是 counts 指纹：数据变化 → 新 key → 1..6 全量预计算并写回本地 */
+    let PACK_DB = null;
+    try { PACK_DB = JSON.parse(localStorage.getItem('wb-pack-v1') || 'null'); } catch (_) {}
+    if (!PACK_DB || PACK_DB.key !== key) {
+      PACK_DB = { key: key, sols: {} };
+      for (let nn = 1; nn <= 6; nn++) PACK_DB.sols[nn] = solve(counts, nn);
+      try { localStorage.setItem('wb-pack-v1', JSON.stringify(PACK_DB)); } catch (_) {}
+    }
+    /* 某次实际列数超出 1..6：现算一份并补存（正常屏幕到不了，兜底） */
+    if (!PACK_DB.sols[nG]) {
+      PACK_DB.sols[nG] = solve(counts, nG);
+      try { localStorage.setItem('wb-pack-v1', JSON.stringify(PACK_DB)); } catch (_) {}
+    }
+    const sol = PACK_DB.sols[nG];
+    const rects = sol.rects;   /* 第二遍沿用旧变量名 rects = 本列数的 DP 解 */
+    /* ===== 第二遍：真实 DOM 量高 + 落位 =====
+       先按形状设宽、组内排好列数（此时才量得出真实高度），再统一绝对定位。
+       注意：量高与落位严格分开，避免"边定位边量高"的反馈污染 */
+    blocks.forEach((b, i) => {
+      const sp = rects[i];
+      b.style.position = 'absolute';
+      b.style.left = '0px'; b.style.top = '0px';         /* 先归零，避免旧值干扰测量 */
+      b.style.width = Math.round(sp.w * P - MASONRY_GAP) + 'px';
+      b.style.height = '';
+      const wrap = b.querySelector('.secCards');
+      if (wrap) {
+        /* 组内列数由算法下发（= 块宽 w；多行块同样 w 列，末卡 span 补满） */
+        wrap.style.gridTemplateColumns = 'repeat(' + sp.k + ', 1fr)';
+        applyTailSpan(wrap, sp.k);
+      }
+    });
+    const natH = blocks.map(b => b.offsetHeight);        /* 块自然高 = 标题行 + 卡片网格 + 内边距 */
+
+    /* 每个卡片行的高：先取该行上「单行块」的最高者；
+       跨多行的块若比所跨行总高还高，把差值均摊到所跨各行（组内卡片行再 1fr 等分） */
+    const nRows = sol.rowsTotal;   /* 页面卡片行总数 = DP 解算结果 */
+    const rowH = new Array(nRows).fill(0);
+    rects.forEach((rc, i) => { if (rc.r === 1) rowH[rc.y] = Math.max(rowH[rc.y], natH[i]); });
+    rects.forEach((rc, i) => {
+      if (rc.r > 1) {
+        const need = natH[i] - (rc.r - 1) * MASONRY_GAP;
+        let have = 0;
+        for (let dy = 0; dy < rc.r; dy++) have += rowH[rc.y + dy];
+        if (need > have) {
+          const add = (need - have) / rc.r;
+          for (let dy = 0; dy < rc.r; dy++) rowH[rc.y + dy] += add;
+        }
+      }
+    });
+
+    /* 行顶累计 + 落位：同一行的组框统一等高（=行高），跨行组框高 = 所跨各行高之和 */
+    const rowTop = []; let acc = 0;
+    for (let y = 0; y < nRows; y++) { rowTop[y] = acc; acc += rowH[y] + MASONRY_GAP; }
+    rects.forEach((rc, i) => {
+      const b = blocks[i];
+      b.style.left = Math.round(rc.x * P) + 'px';
+      b.style.top = Math.round(rowTop[rc.y]) + 'px';
+      let h = 0;
+      for (let dy = 0; dy < rc.r; dy++) h += rowH[rc.y + dy];
+      b.style.height = Math.round(h + (rc.r - 1) * MASONRY_GAP) + 'px';
+    });
+    /* 页面总高 = 最后一行底（末行不再加尾间距）；绝对定位不撑容器，手动收口 */
+    grid.style.height = Math.max(0, Math.round(acc - MASONRY_GAP)) + 'px';
+  }
+
+  /* 统一入口：按当前视图/标签重排（render、resize 防抖、视图切换后调它） */
+  function relayoutMasonry() {
+    const g = $('#grid');
+    const isList = document.body.classList.contains('view-list');
+    if (g.classList.contains('stacked')) {
+      if (isList) {
+        /* 横条视图：组块流式堆叠（CSS flex 管）；清掉装箱定位残留，组内单列横条卡 */
+        g.style.height = '';
+        g.querySelectorAll('.secBlock').forEach(b => {
+          b.style.position = ''; b.style.left = ''; b.style.top = '';
+          b.style.width = ''; b.style.height = '';
+          const w = b.querySelector('.secCards');
+          if (w) { w.style.gridTemplateColumns = '1fr'; applyTailSpan(w, 1); }
+        });
+      } else {
+        /* 网格视图：两遍式方块咬合装箱 */
+        packStackedGroups(g);
+      }
+    } else if (isList) {
+      /* 横条单组视图：纯竖排，跳过瀑布流，只清多列残留 */
+      g.style.height = '';
+      g.style.gridTemplateColumns = '';
+      g.querySelectorAll('.card').forEach(c => { c.style.gridColumn = ''; });
+    } else {
+      /* 单组平铺视图：#grid 自己就是卡片容器 */
+      layoutGroupGrid(g);
+    }
+  }
+
+/* 某组平铺分支里的旧清理函数保留职责：显式重排一次即可（innerHTML 已重建无残留） */
+function clearStackedLayout() {
+  $('#grid').style.height = '';
+}
+
+/* 窗口尺寸变化后重排（防抖 120ms） */
+let _stackResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_stackResizeTimer);
+  _stackResizeTimer = setTimeout(relayoutMasonry, 120);
+});
+
+/* 备注编辑会让卡片高度变化 → 轻防抖 300ms 重排（列内会自动流动贴边） */
+let _layoutTimer = null;
+function scheduleRelayout() {
+  clearTimeout(_layoutTimer);
+  _layoutTimer = setTimeout(relayoutMasonry, 300);
+}
+
+/* ---------- 状态灯 & 关闭服务 ---------- */
+
+/* 标题栏状态灯：活着=绿色在线+运行时长；死了=红色提示 */
+let serviceClosed = false;  // 用户主动关闭服务后，停止自动刷新状态灯（保留"已关闭"提示）
+
+async function refreshStatus() {
+  if (serviceClosed) return;
+  const el = $('#status');
+  try {
+    const j = await (await fetch('/api/status')).json();
+    const min = Math.floor(j.uptimeSec / 60);
+    const t = min >= 1 ? `已运行 ${min} 分钟` : `刚启动`;
+    el.textContent = `● 工作台在线 · ${t} (7788)`;
+    el.style.color = 'var(--ok)';
+  } catch (_) {
+    el.textContent = '× 服务未运行——请双击 启动工作台.bat';
+    el.style.color = 'var(--err)';
+  }
+}
+
+/* 网页上的关闭按钮：确认 → 停服务 → 状态灯变红 */
+async function shutdownServer() {
+  if (!confirm('确定关闭工作台与监控台服务？关闭后页面将无法使用。\n（监控台已并入同一进程，会一起关闭）\n重新开启：双击「启动工作台.bat」')) return;
+  serviceClosed = true;
+  try {
+    await api('/api/shutdown', {});
+    toast('工作台服务已关闭。可双击 启动工作台.bat 重新开启');
+    $('#status').textContent = '× 服务已关闭——重新开启请双击 启动工作台.bat';
+    $('#status').style.color = 'var(--err)';
+  } catch (_) {
+    // 服务立刻死掉导致请求断开也算成功
+    $('#status').textContent = '× 服务已关闭——重新开启请双击 启动工作台.bat';
+    $('#status').style.color = 'var(--err)';
+  }
+}
+
+/* ---------- 启动加载 ---------- */
+
+(async function init() {
+  refreshStatus();
+  setInterval(refreshStatus, 15000);  // 每15秒自动刷新状态灯
+  try {
+    const j = await fetch('/api/cards');
+    const data = await j.json();
+    cards = Array.isArray(data.cards) ? data.cards : [];
+    groupOrder = Array.isArray(data.groupOrder) ? data.groupOrder : [];  // 兼容旧数据
+    render();
+  } catch (e) {
+    toast('加载失败: ' + e.message, true);
+  }
+})();
+
+/* 点击遮罩关闭添加弹窗 */
+$('#addDlg').onclick = e => { if (e.target.id === 'addDlg') closeAddDlg(); };
+</script>
+
+<script>
+/* ============================================================
+   监控台前端模块（并入工作台；逻辑自原 kilo-monitor 页面原样搬入）
+   隔离方式：整段包在 IIFE 里 —— 内部变量/函数全部私有，不污染工作台全局名。
+   与外界只有两个接口：
+     window.KiloMon          —— 平台侧切到监控视图 / 需要刷新时调用
+     window.wbSetMonBadge(n, needsPerm) —— 把未读数与权限提示画到顶栏按钮
+   改动点只有三处（其余逻辑逐行照搬，勿再"顺手简化"）：
+     1. DOM 名加 mon 前缀（monGrid / monCard / monDot …）
+     2. 接口地址改为同源的 /api/monitor/*，VS Code 复用 /api/open-vscode
+     3. 标签页标题改为 "(N) 工作台"，并在工作台视图下也持续更新
+   ============================================================ */
+(function () {
+  "use strict";
+
+  /* ---------- 工具 ---------- */
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function fmtAgo(ts, now){
+    const d = Math.max(0, now - ts);
+    if (d < 60000) return "刚刚";
+    if (d < 3600000) return Math.floor(d/60000) + " 分钟前";
+    if (d < 86400000) return Math.floor(d/3600000) + " 小时前";
+    return Math.floor(d/86400000) + " 天前";
+  }
+  const fmtCost = (c) => c > 0 ? "$" + c.toFixed(2) : "";
+  const fmtTok = (n) => n > 0 ? (n >= 1000 ? (n/1000).toFixed(1) + "k tok" : n + " tok") : "";
+
+  /* ---------- 未读状态（localStorage 持久化，跨开关浏览器保留） ---------- */
+  const SEEN_KEY = "kiloMonitorSeenV1";
+  let seen = {};
+  try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || "{}") || {}; } catch (e) { seen = {}; }
+  /* 首次使用（从未存过已读记录）：把打开页面那一刻"已经安静"的会话标为已读，
+     避免历史会话在首屏表现为一片未读（提醒风暴）。
+     注意：此刻正在活跃的会话【不标】——它们马上要转"待查看"，正是最该提醒的一批。
+     firstRun 必须是 let：首个快照处理后要复位，const 赋值会抛异常导致整页卡死 */
+  let firstRun = (() => { try { return localStorage.getItem(SEEN_KEY) === null; } catch (e) { return false; } })();
+  function saveSeen(){ try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch (e) {} }
+
+  /* ---------- 全局状态 ---------- */
+  let prevStatus = {};   // sid -> 上次状态（用于"刚回复完"边沿检测，避免重复提醒）
+  let sseFails = 0;
+  let pollTimer = null;
+  let curVer = 0;
+  let __latest = null;   // 最近一次快照（隐藏视图期间也要继续收数据）
+  let lastUnread = 0;    // 最近一次算出的未读总数（顶栏按钮显示用）
+
+  /* 状态三态：
+     活跃中   = 90 秒内有更新（agent 跑的时候消息持续刷新，此判定可靠）
+     待查看   = 最后一条消息是 assistant 回复 且 满 90 秒静默 且你还没看过
+                （不设 30 分钟过期：黄点+角标保留到你看过为止；响铃/弹窗仅限头 30 分钟）
+     空闲     = 其余 */
+  function statusOf(s, now){
+    const d = now - s.timeUpdated;
+    if (d < 90000) return "active";
+    if (s.lastRole === "assistant") return "review";
+    return "idle";
+  }
+
+  /* ---------- 提示音（Web Audio 合成，无音频文件） ---------- */
+  let audioCtx = null;
+  function ensureAudio(){
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    return audioCtx;
+  }
+  function beep(){
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    try {
+      const t = ctx.currentTime;
+      [[880, 0.00, 0.12], [1175, 0.15, 0.18]].forEach(([f, off, dur]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t + off);
+        g.gain.exponentialRampToValueAtTime(0.25, t + off + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + off + dur);
+        o.connect(g).connect(ctx.destination);
+        o.start(t + off); o.stop(t + off + dur + 0.05);
+      });
+    } catch (e) {}
+  }
+  /* 浏览器策略：AudioContext 需用户手势激活——首次点击页面任意位置时解锁 */
+  function unlockAudio(){ const c = ensureAudio(); if (c && c.state === "suspended") c.resume(); }
+  document.addEventListener("click", unlockAudio, { once: true });
+
+  /* ---------- 系统通知（标题=项目名 → 提示音可定位项目的核心） ---------- */
+  function needsPerm(){ return ("Notification" in window) && Notification.permission === "default"; }
+  function refreshBadge(){ if (window.wbSetMonBadge) window.wbSetMonBadge(lastUnread, needsPerm()); }
+
+  function notifyAll(list){
+    beep();
+    for (const [p, s] of list) {
+      try {
+        if ("Notification" in window && Notification.permission === "granted") {
+          const n = new Notification(p.displayName, { body: s.title, tag: s.id });
+          n.onclick = () => {
+            window.focus();
+            if (window.switchAppView) window.switchAppView("mon"); // 点通知直接切到监控台
+            markSeen(p.directory);
+            n.close();
+          };
+        }
+      } catch (e) {}
+    }
+  }
+  const notifBtn = $("#monNotifBtn");
+  function refreshNotifBtn(){
+    if (!("Notification" in window)) { notifBtn.textContent = "浏览器不支持通知"; notifBtn.disabled = true; refreshBadge(); return; }
+    if (Notification.permission === "granted") { notifBtn.textContent = "通知已开启"; notifBtn.disabled = true; }
+    else if (Notification.permission === "denied") { notifBtn.textContent = "通知被浏览器拒绝"; notifBtn.disabled = true; }
+    else { notifBtn.textContent = "开启通知"; notifBtn.disabled = false; }
+    refreshBadge();
+  }
+  notifBtn.addEventListener("click", async () => {
+    try { await Notification.requestPermission(); } catch (e) {}
+    unlockAudio(); refreshNotifBtn();
+  });
+  /* 测试提醒按钮：一键验证"响铃 + 弹窗"链路，与状态判定完全解耦
+     （真实链路还要等"对话结束 + 90 秒静默"，日常排障用这个最直接） */
+  $("#monTestBtn").addEventListener("click", async () => {
+    unlockAudio();
+    try {
+      if ("Notification" in window && Notification.permission !== "granted") {
+        await Notification.requestPermission();
+      }
+    } catch (e) {}
+    refreshNotifBtn();
+    beep();
+    try {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("监控台测试", { body: "听到响铃 + 看到本条 = 提醒链路正常" });
+      } else {
+        alert("浏览器通知权限未开启，响铃已播放；请点「开启通知」后重试弹窗。");
+      }
+    } catch (e) { alert("通知构造失败：" + e); }
+  });
+  refreshNotifBtn();
+
+  /* ---------- 渲染 ---------- */
+  function setConn(t){ $("#monConn").textContent = t; }
+
+  function applyState(st){
+    if (st.error) {
+      $("#monErr").style.display = "block";
+      $("#monErr").textContent = "数据库结构读取失败（可能是 Kilo 升级改变了库结构），监控台需要更新。\n" + (st.detail || "");
+      setConn("数据库结构变化");
+      return;
+    }
+    $("#monErr").style.display = "none";
+    curVer = st.ver || 0;
+    render(st);
+  }
+
+  function render(st){
+    /* 容错：错误快照（数据源坏掉）没有 projects 字段，直接不渲染；
+       错误提示由 applyState 负责显示。加了这道守卫，所有调用方都安全 */
+    if (!st || !Array.isArray(st.projects)) return;
+    const now = Date.now();  // 必须用本地当前时间：状态随时间推进变化，冻结在快照时刻会导致永远不跳变
+    const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+    let activeProjects = 0, activeSessions = 0, unreadTotal = 0, todayCost = 0;
+    const toNotify = [];
+    let html = "";
+
+    for (const p of st.projects) {
+      let cardUnread = 0, isActive = false, rows = "";
+      for (const s of p.sessions) {
+        const stt = statusOf(s, now);
+        if (stt === "active") { activeSessions++; isActive = true; }
+        // 未读判定：基线里没有该会话（首次打开时正处于活跃期、被跳过未标记）
+        // 或更新时间越过基线，都算未读
+        const unseen = !(s.id in seen) || s.timeUpdated > seen[s.id];
+        if (stt === "review" && unseen) cardUnread++;
+        // 边沿检测：只有"非待查看 → 待查看"跳变且未看过时才提醒一次
+        // 响铃/弹窗仅限头 30 分钟（避免隔天旧会话鸣叫）；更早的静默挂角标
+        if (stt === "review" && prevStatus[s.id] !== "review" && unseen && (now - s.timeUpdated) <= 1800000) {
+          toNotify.push([p, s]);
+        }
+        prevStatus[s.id] = stt;
+        if (s.timeUpdated >= startOfDay.getTime()) todayCost += (s.cost || 0);
+        rows += '<li class="monItem"><span class="monDot ' + stt + '"></span>'
+          + '<span class="monTitle" title="' + esc(s.title) + '"><span class="monTitleInner">' + esc(s.title) + '</span></span>'
+          + '<span class="monMeta">' + esc(fmtCost(s.cost)) + (s.cost > 0 ? " " : "") + esc(fmtTok(s.tokens)) + '</span></li>';
+      }
+      if (cardUnread) unreadTotal += cardUnread;
+      if (isActive) activeProjects++;
+      html += '<section class="monCard ' + (cardUnread ? "unread" : "") + '" data-dir="' + esc(p.directory) + '">'
+        + '<div class="monCardHead">'
+        + '<span class="monPname" title="' + esc(p.directory) + '"><span class="monPnameInner">' + esc(p.displayName) + '</span></span>'
+        + '<span class="monBadge">' + cardUnread + '</span>'
+        + '<span class="monAgo">' + esc(fmtAgo(p.lastActivity, now)) + '</span>'
+        + '<button class="monOpenBtn" data-dir="' + esc(p.directory) + '">VS Code</button>'
+        + '</div><ul class="monList">' + rows + '</ul></section>';
+    }
+
+    $("#monGrid").innerHTML = html;
+    $("#monSummary").textContent = "活跃项目 " + activeProjects + " · 活跃会话 " + activeSessions
+      + " · 今日花费 $" + todayCost.toFixed(2);
+    /* 标签页标题：任何视图下都更新（这样在工作台视图里也能看到未读数） */
+    document.title = unreadTotal ? "(" + unreadTotal + ") 工作台" : "工作台";
+    lastUnread = unreadTotal;
+    refreshBadge();
+    $("#monEmpty").style.display = st.projects.length ? "none" : "block";
+    if (toNotify.length) notifyAll(toNotify);
+  }
+
+  /* 点击卡片任意处 → 该项目未读清零；点 VS Code 按钮 → 打开对应窗口 */
+  $("#monGrid").addEventListener("click", (e) => {
+    const openBtn = e.target.closest(".monOpenBtn");
+    if (openBtn) {
+      e.stopPropagation();
+      openBtn.disabled = true;
+      // 复用工作台已有的「VS Code 打开」接口（不再单造一个 /api/open）
+      fetch("/api/open-vscode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: openBtn.dataset.dir }),
+      })
+        .then((r) => r.json())
+        .then((j) => { if (!j.ok) alert("打开失败：" + j.error); })
+        .catch(() => alert("打开失败：工作台服务不可达"))
+        .finally(() => { openBtn.disabled = false; });
+      return;
+    }
+    const card = e.target.closest(".monCard");
+    if (card && latestOf(card.dataset.dir)) markSeen(card.dataset.dir);
+  });
+  function latestOf(dir){
+    /* 容错：数据源异常时快照里没有 projects 字段（只有 error），这里直接放弃 */
+    if (!__latest || !Array.isArray(__latest.projects)) return null;
+    return __latest.projects.find((p) => p.directory === dir) || null;
+  }
+  function markSeen(dir){
+    const p = latestOf(dir);
+    if (!p) return;
+    for (const s of p.sessions) seen[s.id] = s.timeUpdated;
+    saveSeen();
+    render(__latest);
+  }
+
+  /* ================= 状态跳变闹钟（零轮询的关键） =================
+     状态跳变（活跃→待查看→空闲）由时间推移产生，服务器不会因此推数据。
+     这里在每次收到数据后，精确算出下一次跳变时刻，排一次性定时器到点重判；
+     空闲时不产生任何周期性唤醒。 */
+  let boundaryTimer = null;
+  function scheduleBoundaryRender(){
+    if (boundaryTimer) { clearTimeout(boundaryTimer); boundaryTimer = null; }
+    /* 容错：错误快照（数据源坏掉）没有 projects 字段，不能直接遍历，
+       否则会抛 TypeError 并打断后续逻辑（V9 实测踩到过） */
+    if (!__latest || !Array.isArray(__latest.projects)) return;
+    const nowMs = Date.now();
+    let next = Infinity;
+    for (const p of __latest.projects) {
+      for (const s of p.sessions) {
+        const d = nowMs - s.timeUpdated;
+        // 唯一的时间型跳变是"满 90 秒"；待查看无过期（转走只靠新数据推送或已读点击）
+        if (d < 90000) next = Math.min(next, s.timeUpdated + 90000);
+      }
+    }
+    if (next < Infinity) {
+      const delay = Math.max(250, next - nowMs + 250);  // 过界后 250ms 再渲染，避开临界误差
+      boundaryTimer = setTimeout(() => {
+        boundaryTimer = null;
+        if (__latest) { render(__latest); scheduleBoundaryRender(); }  // 链到下一个跳变
+      }, delay);
+    }
+  }
+
+  /* ================= 数据通道：SSE 长连接（主） + 轮询（兜底，仅断线时启用） ================= */
+  const _apply = applyState;
+  applyState = function(st){
+    __latest = st;
+    if (firstRun && !st.error) {           // 首次使用：先建立"已读基线"
+      firstRun = false;
+      for (const p of st.projects) for (const s of p.sessions) {
+        // 此刻"活跃"（90 秒内有更新）的会话不做基线标记：它们马上要转入
+        // "待查看"，正是你最需要提醒的那一批 → 保持未读，到点触发提醒。
+        // 只把已经安静的老会话标为已读，避免打开页面时补弹一堆陈年通知。
+        const theNow = Date.now();
+        if (s.timeUpdated > theNow - 90000) continue;
+        seen[s.id] = s.timeUpdated;
+      }
+      saveSeen();
+    }
+    _apply(st);
+    scheduleBoundaryRender();
+  };
+
+  function startSSE(){
+    const es = new EventSource("/api/monitor/events");
+    es.onopen = () => { sseFails = 0; stopPoll(); setConn("已连接 · 实时推送"); };
+    es.onmessage = (e) => {
+      sseFails = 0; stopPoll(); setConn("已连接 · 实时推送");
+      try { applyState(JSON.parse(e.data)); }
+      catch (err) { console.error("监控台 applyState 处理异常:", err); }  // 不静默吞错：异常必须留下线索
+    };
+    es.onerror = () => {
+      sseFails++;
+      setConn(sseFails >= 3 ? "连接断开 · 轮询模式（自动重连中）" : "重连中…");
+      if (sseFails >= 3) startPoll();  // 连续失败 3 次才降级轮询；SSE 自带重连，成功即恢复
+    };
+  }
+  function startPoll(){
+    if (pollTimer) return;
+    pollTimer = setInterval(pollOnce, 3000);
+    pollOnce();
+  }
+  function stopPoll(){ if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+  async function pollOnce(){
+    try {
+      const r = await fetch("/api/monitor/sessions?ver=" + curVer);
+      const j = await r.json();
+      if (j.changed !== false) applyState(j);
+    } catch (e) {}
+  }
+  /* 切回标签页时若处于轮询模式立即刷一次 */
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && pollTimer) pollOnce();
+  });
+
+  /* 供工作台侧调用：切进监控视图时用"当前时间"重判一次状态 */
+  window.KiloMon = {
+    onShow: () => { if (__latest) render(__latest); scheduleBoundaryRender(); },
+  };
+
+  startSSE();
+})();
+</script>
+</body>
+</html>

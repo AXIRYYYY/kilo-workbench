@@ -1,0 +1,37 @@
+{
+  "cards": [
+    {
+      "id": "c-demo-1",
+      "name": "示例项目（可右键编辑/删除）",
+      "path": "C:\\Users\\Public",
+      "note": "这是示例卡片，替换成你自己的项目路径即可",
+      "order": 1,
+      "bats": [],
+      "links": [],
+      "group": "示例分组"
+    },
+    {
+      "id": "c-demo-2",
+      "name": "示例：公共文档",
+      "path": "C:\\Users\\Public\\Documents",
+      "note": "",
+      "order": 2,
+      "bats": [],
+      "links": [],
+      "group": "示例分组"
+    },
+    {
+      "id": "c-demo-3",
+      "name": "示例：Windows 目录",
+      "path": "C:\\Windows",
+      "note": "",
+      "order": 3,
+      "bats": [],
+      "links": [],
+      "group": ""
+    }
+  ],
+  "groupOrder": [
+    "示例分组"
+  ]
+}

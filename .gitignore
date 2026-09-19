@@ -22,6 +22,9 @@ config.json
 data/projects.json
 *.bak
 *.bak-*
+# 编辑器/AI 工具产生的目录（可能含嵌套 git worktree，绝不能被 add -A 误提交）
+.kilo/
+.claude/
 __pycache__/
 node_modules/
 .DS_Store
